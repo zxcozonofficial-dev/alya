@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- бумага не перекрашивается браузером в «тёмную тему» -->
+<meta name="color-scheme" content="only light">
+<title>Alya overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;600;800&family=Martian+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="alya.css">
+<style>
+/* Игровая сцена. Окно игры прозрачное: под оверлеем в OBS — захват osu!, поверх всего — VTube Studio
+   справа внизу. ?only=captions|chat|map — один блок, ?nobg — без бумаги. */
+#game { position: absolute; left: 32px; top: 32px; width: 1408px; height: 792px; }
+#game .frame { position: absolute; inset: -5px; border: 3px solid var(--ink-soft); border-radius: 6px; filter: url(#rough); }
+
+#head { position: absolute; left: 1490px; top: 26px; width: 400px; }
+#head h1 { font-size: 92px; font-weight: 800; line-height: .95; color: var(--osu); letter-spacing: -.02em;
+  transform: rotate(-3deg); transform-origin: left; }
+#head .note { position: absolute; left: 232px; top: 18px; width: 170px; font-size: 19px; line-height: 1.15;
+  color: var(--ink-soft); transform: rotate(4deg); }
+#head svg { position: absolute; left: 186px; top: 40px; }
+
+#map { position: absolute; left: 1490px; top: 150px; width: 400px; }
+#map .title { margin-top: 6px; font-size: 30px; font-weight: 800; line-height: 1.1; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance; }
+#map .sub { margin-top: 4px; font-size: 18px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#map .row { margin-top: 10px; display: flex; gap: 18px; font-family: var(--mono); font-size: 15px; }
+#map .row b { font-weight: 600; }
+#map .mods { color: var(--osu); font-weight: 600; }
+#map .nums { margin-top: 14px; display: grid; grid-template-columns: 1.15fr 1fr .8fr; column-gap: 10px; }
+#map .nums b { display: block; font-family: var(--mono); font-weight: 600; font-size: 30px; line-height: 1.1;
+  font-variant-numeric: tabular-nums; }
+#map .idle { margin-top: 10px; font-size: 22px; color: var(--ink-soft); }
+
+/* полоса ошибок попадания, как в osu!: 300 / 100 / 50 и засечки последних нажатий */
+#hit { margin-top: 18px; }
+#hit .bar { position: relative; height: 28px; margin-top: 6px; }
+#hit .zone { position: absolute; top: 11px; height: 6px; border-radius: 3px; }
+#hit .mid { position: absolute; left: 50%; top: 2px; width: 2px; height: 24px; background: var(--ink); margin-left: -1px; }
+#hit .tick { position: absolute; top: 4px; width: 2px; height: 20px; margin-left: -1px; background: var(--ink); transition: opacity 3s linear; }
+#hit .ur { display: flex; justify-content: space-between; margin-top: 2px; font-family: var(--mono); font-size: 14px; color: var(--ink-soft); }
+#hit .ur b { color: var(--ink); font-weight: 600; }
+
+#chat { position: absolute; left: 1480px; top: 466px; width: 420px; height: 222px; }
+
+#caption { position: absolute; left: 32px; top: 852px; width: 1408px; height: 196px; }
+#caption .bubble::after { content: ""; position: absolute; right: -26px; top: 70px; width: 34px; height: 30px;
+  background: var(--bubble); border: 3px solid var(--ink-soft); border-left: 0; border-bottom: 0; transform: skewY(28deg) rotate(8deg); }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="3"/>
+    <feDisplacementMap in="SourceGraphic" scale="3.2"/></filter>
+</svg>
+
+<canvas id="paper" width="1920" height="1080"></canvas>
+
+<div id="game"><div class="frame"></div></div>
+
+<div id="head">
+  <h1>Alya</h1>
+  <svg width="54" height="40" viewBox="0 0 54 40" fill="none"><path d="M50 30 C 36 34, 18 30, 6 14 M6 14 l2 11 M6 14 l11 1"
+    stroke="#8d97ae" stroke-width="2.4" stroke-linecap="round"/></svg>
+  <div class="note">a neural net.<br>plays offline only</div>
+</div>
+
+<div id="map">
+  <div class="label">now playing</div>
+  <div id="m-live">
+    <div class="title" id="m-title">—</div>
+    <div class="sub" id="m-sub">—</div>
+    <div class="row"><span><b id="m-stars">—</b>★</span><span class="mods" id="m-mods">NM</span><span><b id="m-bpm">—</b> bpm</span></div>
+    <div class="nums">
+      <div><b id="m-acc">—</b><span class="label">acc</span></div>
+      <div><b id="m-combo">—</b><span class="label">combo</span></div>
+      <div><b id="m-pp">—</b><span class="label">pp</span></div>
+    </div>
+    <div id="hit">
+      <div class="label">hit error, ms</div>
+      <div class="bar" id="hit-bar">
+        <div class="zone" id="z50" style="background:var(--j50)"></div>
+        <div class="zone" id="z100" style="background:var(--j100)"></div>
+        <div class="zone" id="z300" style="background:var(--j300)"></div>
+        <div class="mid"></div>
+      </div>
+      <div class="ur"><span>early</span><span>UR <b id="m-ur">—</b></span><span>late</span></div>
+    </div>
+  </div>
+  <div class="idle hidden" id="m-idle">picking a map…</div>
+</div>
+
+<div id="chat">
+  <div class="frame"></div>
+  <div class="head"><span class="label">chat</span><span class="chan" id="chat-channel"></span></div>
+  <div class="queue" id="queue">request a map: !req &lt;link&gt;</div>
+  <div class="list" id="chat-list"><div class="empty" id="chat-empty">quiet in here. say hi, she reads chat</div></div>
+</div>
+
+<div id="caption" class="quiet">
+  <div class="bubble"></div>
+  <div class="who">alya says <em id="emo">(neutral)</em></div>
+  <div class="text" id="say"><span class="muted">…</span></div>
+</div>
+
+
+
+<script src="alya.js"></script>
+<script>
+const only = { captions: ["caption"], chat: ["chat"], map: ["map"] }[params.get("only")];
+if (only) for (const id of ["paper", "game", "head", "map", "chat", "caption"]) if (!only.includes(id)) $(id).classList.add("hidden");
+if (params.has("nobg")) $("paper").classList.add("hidden");
+
+paper($("paper").getContext("2d"), {
+  doodles: [["heart", 1872, 432, 11], ["star", 1872, 136, 12], ["cat", 1846, 800, 26], ["spiral", 1530, 790, 24],
+            ["star", 1890, 960, 10], ["heart", 1452, 868, 9]],
+  hole: [32, 32, 1408, 792],  // окно игры остаётся прозрачным
+});
+
+/* ---------- карта и полоса ошибок: прямо из tosu ---------- */
+const HALF = 186;            // полуширина полосы ошибок, px
+let seen = 0, scaleMs = 100;
+function layoutZones(win) {
+  scaleMs = win.meh || 100;
+  const z = (id, ms) => { const w = HALF * Math.min(1, ms / scaleMs); Object.assign($(id).style, { left: (200 - w) + "px", width: (2 * w) + "px" }); };
+  z("z50", win.meh || 100); z("z100", win.ok || 60); z("z300", win.great || 20);
+}
+function addTick(ms) {
+  const t = document.createElement("div");
+  t.className = "tick";
+  t.style.left = (200 + Math.max(-1, Math.min(1, ms / scaleMs)) * HALF) + "px";
+  $("hit-bar").appendChild(t);
+  requestAnimationFrame(() => requestAnimationFrame(() => (t.style.opacity = "0")));
+  setTimeout(() => t.remove(), 3200);
+}
+function connectTosu() {
+  const ws = new WebSocket("ws://127.0.0.1:24050/websocket/v2");
+  ws.onmessage = (m) => {
+    const d = JSON.parse(m.data);
+    const b = d.beatmap || {}, p = d.play || {}, st = (d.state || {}).number, s = b.stats || {};
+    const playing = st === 2 || st === 7;
+    $("m-idle").classList.toggle("hidden", !!b.title);
+    $("m-live").classList.toggle("hidden", !b.title);
+    $("m-title").textContent = b.title || "—";
+    $("m-sub").textContent = b.artist ? `${b.artist} · [${b.version}] by ${b.mapper}` : "";
+    $("m-stars").textContent = (s.stars || {}).total ? s.stars.total.toFixed(2) : "—";
+    $("m-mods").textContent = (p.mods || {}).name || "NM";
+    const bpm = (s.bpm || {}).common;
+    $("m-bpm").textContent = bpm ? Math.round(bpm * ((p.mods || {}).rate || 1)) : "—";
+    $("m-acc").textContent = playing ? (p.accuracy ?? 100).toFixed(2) + "%" : "—";
+    $("m-combo").textContent = playing ? ((p.combo || {}).current ?? 0) + "x" : "—";
+    $("m-pp").textContent = playing ? Math.round((p.pp || {}).current || 0) : "—";
+    $("m-ur").textContent = playing && p.unstableRate ? p.unstableRate.toFixed(0) : "—";
+    if (s.hitWindow && s.hitWindow.meh !== scaleMs) layoutZones(s.hitWindow);
+    const errs = p.hitErrorArray || [];
+    if (errs.length < seen) seen = 0;            // ретрай
+    for (const e of errs.slice(seen, seen + 20)) addTick(e);
+    seen = errs.length;
+  };
+  ws.onclose = () => setTimeout(connectTosu, 2000);
+}
+layoutZones({ meh: 100, ok: 60, great: 20 });
+connectTosu();
+</script>
+</body>
+</html>

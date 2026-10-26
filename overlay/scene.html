@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="only light">
+<title>Alya scene</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;600;800&family=Martian+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="alya.css">
+<style>
+/* Заставки: ?mode=starting (стрим скоро начнётся), brb (отошла), end (конец стрима).
+   Слева большая надпись маркером и каракуль, который Аля рисует дымом прямо на глазах; справа чат
+   и очередь заказов; внизу её субтитры — говорить она может и на заставке. Моделька — справа внизу. */
+#title { position: absolute; left: 96px; top: 150px; width: 1300px; }
+#title .kicker { font-family: var(--mono); font-size: 20px; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); }
+#title h1 { margin-top: 14px; font-size: 150px; font-weight: 800; line-height: .95; color: var(--osu);
+  letter-spacing: -.02em; transform: rotate(-2.5deg); transform-origin: left; text-wrap: balance; }
+#title p { margin-top: 34px; font-size: 34px; color: var(--ink); max-width: 900px; }
+#title .clock { margin-top: 18px; font-family: var(--mono); font-size: 26px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+#draw { position: absolute; left: 980px; top: 360px; }
+#draw-label { position: absolute; left: 1020px; top: 750px; font-size: 22px; color: var(--ink-soft); transform: rotate(-3deg); }
+
+#chat { position: absolute; left: 1480px; top: 48px; width: 420px; height: 610px; }
+
+#caption { position: absolute; left: 32px; top: 852px; width: 1408px; height: 196px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="3"/>
+    <feDisplacementMap in="SourceGraphic" scale="3.2"/></filter>
+</svg>
+
+<canvas id="paper" width="1920" height="1080"></canvas>
+
+<div id="title">
+  <div class="kicker" id="kicker">alya · osu! with a neural net</div>
+  <h1 id="headline">starting soon</h1>
+  <p id="line">she's warming up her hands</p>
+  <div class="clock" id="clock"></div>
+</div>
+
+<canvas id="draw" width="420" height="380"></canvas>
+<div id="draw-label">drawn with smoke, like between notes</div>
+
+<div id="chat">
+  <div class="frame"></div>
+  <div class="head"><span class="label">chat</span><span class="chan" id="chat-channel"></span></div>
+  <div class="queue" id="queue">request a map: !req &lt;link&gt;</div>
+  <div class="list" id="chat-list"><div class="empty" id="chat-empty">quiet in here. say hi, she reads chat</div></div>
+</div>
+
+<div id="caption" class="quiet">
+  <div class="bubble"></div>
+  <div class="who">alya says <em id="emo">(neutral)</em></div>
+  <div class="text" id="say"><span class="muted">…</span></div>
+</div>
+
+<script src="alya.js"></script>
+<script>
+const MODES = {
+  starting: ["starting soon", "she's warming up her hands. drop a map with !req and she might play it first"],
+  brb: ["be right back", "she's off doodling. chat is still open, she reads it"],
+  end: ["thanks for watching", "that's it for today. she'll remember who was here"],
+};
+const mode = MODES[params.get("mode")] ? params.get("mode") : "starting";
+$("headline").textContent = MODES[mode][0];
+$("line").textContent = MODES[mode][1];
+document.title = "Alya " + mode;
+
+paper($("paper").getContext("2d"), {
+  doodles: [["star", 1872, 760, 12], ["heart", 1452, 1040, 10], ["spiral", 1540, 1010, 20], ["star", 60, 80, 14]],
+});
+
+// часы: сколько идёт заставка (на «конце» не нужны)
+const t0 = Date.now();
+function tick() {
+  if (mode === "end") return;
+  const s = Math.floor((Date.now() - t0) / 1000);
+  $("clock").textContent = `on screen for ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+setInterval(tick, 1000); tick();
+
+/* ---------- каракуль рисуется на глазах: штрих за штрихом, потом исчезает, следующий ---------- */
+const dc = $("draw").getContext("2d");
+const order = ["cat", "heart", "star", "spiral"];
+let k = 0;
+function drawLoop() {
+  const name = order[k++ % order.length];
+  const seed = Math.random();
+  const start = performance.now(), DRAW = 3200, HOLD = 2200, FADE = 700;
+  function frame(now) {
+    const t = now - start;
+    dc.clearRect(0, 0, 420, 380);
+    dc.globalAlpha = t < DRAW + HOLD ? 1 : Math.max(0, 1 - (t - DRAW - HOLD) / FADE);
+    dc.strokeStyle = css("--ink"); dc.lineWidth = 5; dc.lineCap = dc.lineJoin = "round";
+    dc.shadowColor = css("--ink"); dc.shadowBlur = 10;   // дым, а не ручка
+    // одно и то же дрожание линии в каждом кадре, иначе она бы мерцала
+    strokeShape(dc, name, 210, 200, name === "spiral" ? 150 : 140, Math.min(1, t / DRAW), mulberry(seed));
+    if (t < DRAW + HOLD + FADE) requestAnimationFrame(frame);
+    else setTimeout(drawLoop, 400);
+  }
+  requestAnimationFrame(frame);
+}
+function mulberry(a) {
+  let s = Math.floor(a * 2 ** 32);
+  return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+drawLoop();
+</script>
+</body>
+</html>

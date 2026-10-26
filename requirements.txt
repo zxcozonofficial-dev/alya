@@ -1,0 +1,9 @@
+numpy
+websockets
+openai
+anthropic
+edge-tts
+miniaudio
+sounddevice
+# torch: pip install torch --index-url https://download.pytorch.org/whl/cu128
+torch

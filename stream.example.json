@@ -1,0 +1,11 @@
+{
+  "tosu": "tosu.exe",
+  "twitch": "your_channel",
+  "model": "ckpt/alya.pt",
+  "keys": "zx",
+  "acc": 0.96,
+  "vts": true,
+  "voice": "en-US-AnaNeural",
+  "lang": "en",
+  "autopilot": true
+}

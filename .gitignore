@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+
+# личное и локальное: память, зрители, токены, сессии, скачанные карты, датасеты
+data/
+stream.json
+logs/
+out/
+*.log
+voice_samples/
+replays/live/
+
+# старые чекпоинты; в репозитории только итоговая модель
+ckpt/*
+!ckpt/alya.pt
+!ckpt/live_offset.json

@@ -1,0 +1,64 @@
+/* Общее для всех сцен Али: ночная тетрадь — приглушённая сине-серая бумага, мягкие белые чернила,
+   подписи маркером, цифры моноширинным, на полях каракули, которые Аля рисует дымом.
+   Сцены нарисованы под 1920×1080 (холст OBS). ?light — светлая бумага вместо ночной. */
+:root {
+  --paper: #232a3a;
+  --margin: rgba(232, 108, 160, .35);
+  --ink: #dfe4ef;
+  --ink-soft: #8d97ae;
+  --bubble: #2a3245;
+  --osu: #e979a9;            /* розовый osu!, чуть приглушённый — маркер Али */
+  --doodle: rgba(223, 228, 239, .16);
+  --nick-mix: 223, 228, 239; /* к чему подмешивать цвета ников Twitch */
+  --j300: #4d9fe0; --j100: #5bbf6c; --j50: #d9a23f;
+  --hand: "Shantell Sans", "Comic Sans MS", cursive;
+  --mono: "Martian Mono", "Consolas", monospace;
+  color-scheme: only light;
+}
+:root.light {
+  --paper: #eef1f6; --margin: rgba(255, 102, 170, .45); --ink: #1d2a4d; --ink-soft: #5b6a8c;
+  --bubble: #ffffff; --osu: #ff66aa; --doodle: rgba(29, 42, 77, .28); --nick-mix: 29, 42, 77;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+body { font-family: var(--hand); color: var(--ink); }
+.hidden { display: none !important; }
+#paper { position: absolute; inset: 0; }
+.label { font-family: var(--mono); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* чат: рамка маркером, как у облачка её речи */
+#chat .frame { position: absolute; inset: 0; background: var(--bubble); border: 3px solid var(--ink-soft);
+  border-radius: 20px; filter: url(#rough); }
+#chat .head { position: absolute; left: 20px; right: 20px; top: 14px; display: flex; gap: 10px; align-items: baseline; }
+#chat .chan { font-size: 17px; font-weight: 800; color: var(--osu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#chat .queue { position: absolute; left: 20px; right: 20px; top: 40px; }
+#chat .list { position: absolute; left: 20px; right: 20px; top: 70px; bottom: 14px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
+  -webkit-mask-image: linear-gradient(transparent, #000 34%); mask-image: linear-gradient(transparent, #000 34%); }
+#chat .msg { font-size: 19px; line-height: 1.3; overflow-wrap: anywhere; animation: write .4s ease-out; }
+#chat .msg b { font-weight: 800; margin-right: 6px; }
+#chat .empty { margin-top: 10px; font-size: 20px; color: var(--ink-soft); }
+@keyframes write { from { opacity: 0; transform: translateY(6px); } }
+
+/* очередь заказов под заголовком чата */
+.queue { font-size: 17px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue b { color: var(--osu); font-weight: 800; }
+
+/* субтитры: облачко маркером */
+#caption .bubble { position: absolute; inset: 0; background: var(--bubble); border: 3px solid var(--ink-soft);
+  border-radius: 26px; filter: url(#rough); }
+#caption .who { position: absolute; left: 30px; top: 18px; font-family: var(--mono); font-size: 14px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-soft); }
+#caption .who em { font-family: var(--hand); font-style: normal; font-size: 22px; letter-spacing: 0; text-transform: none;
+  color: var(--osu); font-weight: 800; margin-left: 8px; }
+#caption .text { position: absolute; left: 30px; right: 40px; top: 50px; bottom: 18px; font-size: 38px; font-weight: 600;
+  line-height: 1.22; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#caption .w { animation: ink .3s ease-out both; }
+@keyframes ink { from { opacity: 0; } }
+#caption .text .muted { color: var(--ink-soft); font-weight: 400; }
+#caption.quiet .text { color: var(--ink-soft); }
+.dots span { animation: bob 1s infinite; display: inline-block; color: var(--osu); font-weight: 800; }
+.dots span:nth-child(2) { animation-delay: .15s; } .dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bob { 40% { transform: translateY(-8px); } }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
